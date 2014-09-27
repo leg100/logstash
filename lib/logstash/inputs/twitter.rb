@@ -49,6 +49,9 @@ class LogStash::Inputs::Twitter < LogStash::Inputs::Base
   # Any keywords to track in the twitter stream
   config :keywords, :validate => :array, :required => true
 
+  # Restrict tweets to a language
+  config :language, :validate => :string, :required => false
+
   # Record full tweet object as given to us by the Twitter stream api.
   config :full_tweet, :validate => :boolean, :default => false
 
@@ -85,7 +88,10 @@ class LogStash::Inputs::Twitter < LogStash::Inputs::Base
   def run(queue)
     @logger.info("Starting twitter tracking", :keywords => @keywords)
     begin
-      @client.filter(:track => @keywords.join(",")) do |tweet|
+      args = { :track => @keywords.join(",") }
+      args[:language] = @language unless @language.nil?
+
+      @client.filter(args) do |tweet|
         if tweet.is_a?(Twitter::Tweet)
           @logger.debug? && @logger.debug("Got tweet", :user => tweet.user.screen_name, :text => tweet.text)
           if @full_tweet
